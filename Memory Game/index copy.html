@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Game by Michael O'Sullivan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .preserve-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        .animate-bounce {
+            animation: bounce 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        const themes = {
+            animals: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮'],
+            cars: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛'],
+            boats: ['⛵', '🚤', '🛥️', '⛴️', '🛳️', '🚢', '⚓', '🛶', '🚣', '🏄', '🏊', '🤿'],
+            children: ['👦', '👧', '👶', '🧒', '👨‍🦰', '👩‍🦱', '👨‍🦲', '👩‍🦳', '🧔', '👴', '👵', '👼']
+        };
+
+        let currentTheme = 'animals';
+        let cards = [];
+        let flippedCards = [];
+        let isChecking = false;
+        let isWon = false;
+        let turns = 0;
+
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        function createCards(theme) {
+            const items = themes[theme];
+            const pairs = [...items, ...items];
+            return shuffleArray(pairs).map((item, index) => ({
+                id: index,
+                item,
+                isFlipped: false,
+                isMatched: false
+            }));
+        }
+
+        function playTadaSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const playNote = (frequency, startTime, noteDuration) => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = frequency;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.3, startTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + noteDuration);
+                    
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + noteDuration);
+                };
+                
+                const now = audioContext.currentTime;
+                playNote(523.25, now, 0.2);
+                playNote(659.25, now + 0.15, 0.2);
+                playNote(783.99, now + 0.3, 0.4);
+            } catch (error) {
+                console.log('Audio not supported');
+            }
+        }
+
+        function handleCardClick(index) {
+            if (isChecking || cards[index].isFlipped || cards[index].isMatched || flippedCards.length >= 2) {
+                return;
+            }
+
+            cards[index].isFlipped = true;
+            flippedCards.push(index);
+            render();
+
+            if (flippedCards.length === 2) {
+                isChecking = true;
+                turns++;
+                const [first, second] = flippedCards;
+                
+                if (cards[first].item === cards[second].item) {
+                    cards[first].isMatched = true;
+                    cards[second].isMatched = true;
+                    flippedCards = [];
+                    isChecking = false;
+                    render();
+                    checkWin();
+                } else {
+                    setTimeout(() => {
+                        cards[first].isFlipped = false;
+                        cards[second].isFlipped = false;
+                        flippedCards = [];
+                        isChecking = false;
+                        render();
+                    }, 1000);
+                }
+            }
+        }
+
+        function checkWin() {
+            if (cards.every(card => card.isMatched)) {
+                playTadaSound();
+                setTimeout(() => {
+                    isWon = true;
+                    render();
+                }, 500);
+            }
+        }
+
+        function changeTheme(theme) {
+            currentTheme = theme;
+            cards = createCards(theme);
+            flippedCards = [];
+            isChecking = false;
+            isWon = false;
+            turns = 0;
+            render();
+        }
+
+        function resetGame() {
+            cards = createCards(currentTheme);
+            flippedCards = [];
+            isChecking = false;
+            isWon = false;
+            turns = 0;
+            render();
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (isWon) {
+                app.innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-yellow-300 via-pink-400 via-purple-400 via-blue-400 to-green-400 flex items-center justify-center p-4 overflow-hidden relative">
+                        ${[...Array(30)].map((_, i) => `
+                            <div class="absolute animate-bounce text-4xl" style="
+                                left: ${Math.random() * 100}vw;
+                                top: ${Math.random() * 100}vh;
+                                animation-delay: ${Math.random() * 2}s;
+                                animation-duration: ${2 + Math.random() * 2}s;
+                            ">
+                                ${['⭐', '🎈', '🎉', '✨', '🌟', '💫'][Math.floor(Math.random() * 6)]}
+                            </div>
+                        `).join('')}
+                        
+                        <div class="text-center bg-white rounded-3xl p-12 shadow-2xl animate-pulse relative z-10">
+                            <div class="text-9xl mb-6 animate-bounce">🎉</div>
+                            <h1 class="text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+                                WELL DONE!
+                            </h1>
+                            <div class="text-3xl font-bold text-gray-700 mb-8">
+                                You did it in ${turns} turns! 🎯
+                            </div>
+                            <div class="flex gap-4 text-6xl mb-8 justify-center">
+                                <span class="animate-bounce" style="animation-delay: 0s">🎈</span>
+                                <span class="animate-bounce" style="animation-delay: 0.1s">⭐</span>
+                                <span class="animate-bounce" style="animation-delay: 0.2s">🎈</span>
+                                <span class="animate-bounce" style="animation-delay: 0.3s">⭐</span>
+                            </div>
+                            <button onclick="resetGame()" class="bg-gradient-to-r from-green-400 to-blue-500 text-white text-3xl font-bold py-4 px-12 rounded-full hover:scale-110 transition-transform shadow-lg">
+                                Play Again? 🎮
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            app.innerHTML = `
+                <div class="min-h-screen bg-gradient-to-br from-pink-400 via-purple-500 via-blue-500 via-green-400 to-yellow-400 p-4">
+                    <div class="max-w-6xl mx-auto">
+                        <h1 class="text-4xl md:text-6xl font-bold text-white text-center mb-6 drop-shadow-lg flex items-center justify-center gap-3">
+                            <span>✨</span>
+                            Memory Game
+                            <span>✨</span>
+                        </h1>
+                        
+                        <div class="text-center mb-4">
+                            <div class="inline-block bg-white/90 px-6 py-3 rounded-full shadow-lg">
+                                <span class="text-2xl font-bold text-purple-600">Turns: ${turns}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-3 justify-center mb-6">
+                            <button onclick="changeTheme('animals')" class="px-6 py-3 rounded-full text-xl font-bold transition-all ${currentTheme === 'animals' ? 'bg-white text-purple-600 shadow-lg scale-110' : 'bg-white/70 text-purple-800 hover:scale-105'}">
+                                🐾 Animals
+                            </button>
+                            <button onclick="changeTheme('cars')" class="px-6 py-3 rounded-full text-xl font-bold transition-all ${currentTheme === 'cars' ? 'bg-white text-purple-600 shadow-lg scale-110' : 'bg-white/70 text-purple-800 hover:scale-105'}">
+                                🚗 Cars
+                            </button>
+                            <button onclick="changeTheme('boats')" class="px-6 py-3 rounded-full text-xl font-bold transition-all ${currentTheme === 'boats' ? 'bg-white text-purple-600 shadow-lg scale-110' : 'bg-white/70 text-purple-800 hover:scale-105'}">
+                                ⛵ Boats
+                            </button>
+                            <button onclick="changeTheme('children')" class="px-6 py-3 rounded-full text-xl font-bold transition-all ${currentTheme === 'children' ? 'bg-white text-purple-600 shadow-lg scale-110' : 'bg-white/70 text-purple-800 hover:scale-105'}">
+                                👦 People
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-6 md:grid-cols-8 gap-2">
+                            ${cards.map((card, index) => `
+                                <div onclick="handleCardClick(${index})" class="aspect-square cursor-pointer transition-all duration-300 transform hover:scale-105 ${card.isMatched ? 'opacity-50' : ''}">
+                                    <div class="w-full h-full relative preserve-3d" style="transform: ${card.isFlipped || card.isMatched ? 'rotateY(180deg)' : 'rotateY(0deg)'}; transition: transform 0.6s;">
+                                        <div class="absolute w-full h-full bg-gradient-to-br from-yellow-300 to-orange-400 rounded-xl shadow-lg flex items-center justify-center backface-hidden border-2 border-white">
+                                            <div class="text-2xl md:text-3xl">🎴</div>
+                                        </div>
+                                        
+                                        <div class="absolute w-full h-full bg-white rounded-xl shadow-lg flex items-center justify-center backface-hidden border-2 border-yellow-300 overflow-hidden" style="backface-visibility: hidden; transform: rotateY(180deg);">
+                                            <div style="
+                                                font-size: clamp(40px, 10vw, 120px);
+                                                line-height: 1;
+                                                text-size-adjust: none;
+                                                -webkit-text-size-adjust: none;
+                                                -moz-text-size-adjust: none;
+                                                -ms-text-size-adjust: none;
+                                                width: 85%;
+                                                height: 85%;
+                                                display: flex;
+                                                align-items: center;
+                                                justify-content: center;
+                                            ">${card.item}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initialize game
+        cards = createCards(currentTheme);
+        render();
+    </script>
+</body>
+</html>
