@@ -16,9 +16,10 @@ const DEFAULT_IMAGES = [
   "/Sep.jpg", "/Oct.jpg", "/Nov.jpg", "/Dec.jpg"
 ];
 
-// --- HELPER FUNCTIONS ---
+// --- HELPER FUNCTIONS (Now with Strict Types) ---
 
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+
 const getFirstDayOfMonth = (year: number, month: number) => {
   const day = new Date(year, month, 1).getDay();
   return day === 0 ? 6 : day - 1;
@@ -32,20 +33,13 @@ const getDateKey = (d: number, m: number, y: number) => {
   return `${y}-${(m + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
 };
 
-// FIX: Robust ISO 8601 Week Number Calculation
+// Fixed ISO 8601 Week Number with strict Date type
 const getWeekNumber = (d: Date) => {
-  // Create a copy of the date object so we don't modify the original
   const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  // ISO 8601 week starts on Monday. 
-  // Set to nearest Thursday: current date + 4 - current day number
-  // Make Sunday's day number 7
   const dayNum = target.getUTCDay() || 7;
   target.setUTCDate(target.getUTCDate() + 4 - dayNum);
-  // Get first day of year
   const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
-  // Calculate full weeks to nearest Thursday
-  const weekNo = Math.ceil((((target.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  return weekNo;
+  return Math.ceil((((target.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 };
 
 // --- MAIN COMPONENT ---
@@ -63,12 +57,10 @@ export default function PictocalApp() {
   const [customImages, setCustomImages] = useState<Record<number, string>>({});
   const [isDraggingFile, setIsDraggingFile] = useState(false);
 
-  // Track states for buttons & files
   const [isDirty, setIsDirty] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [fileHandle, setFileHandle] = useState<any>(null);
 
-  // Hidden input for fallback file loading
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Derived Values
@@ -78,8 +70,16 @@ export default function PictocalApp() {
   const firstDayOfWeek = getFirstDayOfMonth(currentYear, currentMonth);
 
   // --- GRID LOGIC ---
-  const calendarCells = [];
+  // Define a strictly typed interface for our grid cells
+  interface CalendarCell {
+    day: number;
+    type: 'prev' | 'current' | 'next';
+    key: string;
+  }
+
+  const calendarCells: CalendarCell[] = [];
   const prevMonthDays = getDaysInMonth(currentYear, currentMonth - 1);
+
   for (let i = 0; i < firstDayOfWeek; i++) {
     calendarCells.push({
       day: prevMonthDays - firstDayOfWeek + 1 + i,
