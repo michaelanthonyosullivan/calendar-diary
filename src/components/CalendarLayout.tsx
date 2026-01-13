@@ -251,7 +251,7 @@ export default function CalendarLayout({ initialEvents }: CalendarLayoutProps) {
                                             </div>
                                         </Panel>
 
-                                    </Group>
+                                    </PanelGroup>
                                 </div>
 
                                 {/* Footer Buttons (Right) */}
@@ -279,7 +279,7 @@ export default function CalendarLayout({ initialEvents }: CalendarLayoutProps) {
                             </div>
                         </Panel>
 
-                    </Group>
+                    </PanelGroup>
                 </div>
             </div>
         </div>
