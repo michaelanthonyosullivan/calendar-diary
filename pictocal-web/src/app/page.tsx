@@ -16,7 +16,7 @@ const DEFAULT_IMAGES = [
   "/Sep.jpg", "/Oct.jpg", "/Nov.jpg", "/Dec.jpg"
 ];
 
-// --- HELPER FUNCTIONS (Strict Types Added) ---
+// --- HELPER FUNCTIONS (STRICT TYPES ADDED) ---
 
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
 
