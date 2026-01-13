@@ -16,7 +16,7 @@ const DEFAULT_IMAGES = [
   "/Sep.jpg", "/Oct.jpg", "/Nov.jpg", "/Dec.jpg"
 ];
 
-// --- HELPER FUNCTIONS (Now with Strict Types) ---
+// --- HELPER FUNCTIONS (Strict Types Added) ---
 
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
 
@@ -33,7 +33,6 @@ const getDateKey = (d: number, m: number, y: number) => {
   return `${y}-${(m + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
 };
 
-// Fixed ISO 8601 Week Number with strict Date type
 const getWeekNumber = (d: Date) => {
   const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNum = target.getUTCDay() || 7;
@@ -70,7 +69,6 @@ export default function PictocalApp() {
   const firstDayOfWeek = getFirstDayOfMonth(currentYear, currentMonth);
 
   // --- GRID LOGIC ---
-  // Define a strictly typed interface for our grid cells
   interface CalendarCell {
     day: number;
     type: 'prev' | 'current' | 'next';
